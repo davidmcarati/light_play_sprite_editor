@@ -1,0 +1,15 @@
+{
+    "name": "light-play-sprite-editor",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "npx serve@latest -l 3000 --no-clipboard",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "devDependencies": {
+        "vitest": "^3.0.0",
+        "jsdom": "^26.0.0"
+    }
+}
