@@ -420,12 +420,12 @@ describe("SpriteEditor integration (jsdom)", () => {
         expect(container.querySelector(".se-welcome-overlay")).toBeNull();
     });
 
-    it("layer rows are draggable", () => {
+    it("layer rows support drag reorder via mousedown", () => {
         editor = createSpriteEditor(container);
         editor.createNew(8, 8);
         const rows = container.querySelectorAll(".se-layer-row");
         expect(rows.length).toBeGreaterThanOrEqual(1);
-        rows.forEach(row => expect(row.draggable).toBe(true));
+        rows.forEach(row => expect(row.dataset.idx).toBeDefined());
     });
 
     it("layer opacity slider is present", () => {

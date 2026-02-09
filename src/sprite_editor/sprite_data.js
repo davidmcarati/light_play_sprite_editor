@@ -1,4 +1,4 @@
-const MAX_HISTORY_BYTES = 512 * 1024 * 1024; // 512MB total memory cap
+const MAX_HISTORY_BYTES = 512 * 1024 * 1024;
 const MAX_HISTORY_STEPS = 50;
 
 class SpriteState {
@@ -105,7 +105,6 @@ function _stackBytes(state) {
         }
         return bytes;
     }
-    // SpriteState (legacy/test compat)
     return state.pixels ? state.pixels.byteLength : 0;
 }
 
@@ -124,11 +123,9 @@ class SpriteHistory {
         this._undoStack.push({ snapshot, bytes });
         this._undoBytes += bytes;
 
-        // Clear redo stack
         this._redoStack.length = 0;
         this._redoBytes = 0;
 
-        // Evict oldest if over step limit or memory budget
         while (this._undoStack.length > MAX_HISTORY_STEPS ||
                (this._undoBytes > MAX_HISTORY_BYTES && this._undoStack.length > 1)) {
             const evicted = this._undoStack.shift();

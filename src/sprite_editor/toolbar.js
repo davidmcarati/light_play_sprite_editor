@@ -1,10 +1,10 @@
 class SpriteToolbar {
     constructor(container, options = {}) {
         this._container = container;
-        this._onToolChange = options.onToolChange || (() => {});
-        this._onAction = options.onAction || (() => {});
-        this._onOptionChange = options.onOptionChange || (() => {});
-        this._onViewToggle = options.onViewToggle || (() => {});
+        this._onToolChange = options.onToolChange;
+        this._onAction = options.onAction;
+        this._onOptionChange = options.onOptionChange;
+        this._onViewToggle = options.onViewToggle;
 
         this._activeTool = "Pencil";
         this._brushSize = 1;
@@ -24,39 +24,11 @@ class SpriteToolbar {
         this._container.innerHTML = "";
         this._container.className = "se-toolbar";
 
-        const fileGroup = this._mkGroup("se-toolbar-file");
-        this._mkBtn(fileGroup, "New",     () => this._onAction("new"));
-        this._mkBtn(fileGroup, "Open",    () => this._onAction("open"));
-        this._mkBtn(fileGroup, "Save",    () => this._onAction("save"));
-        this._mkBtn(fileGroup, "Save As", () => this._onAction("saveAs"));
-        this._mkBtn(fileGroup, "Export",  () => this._onAction("export"));
-
-        this._fileNameEl = document.createElement("span");
-        this._fileNameEl.className = "se-toolbar-filename";
-        fileGroup.appendChild(this._fileNameEl);
-        this._container.appendChild(fileGroup);
-
+        this._buildFileGroup();
         this._container.appendChild(this._mkSep());
-
-        const viewGroup = this._mkGroup("se-toolbar-view");
-        this._rulersBtn = this._mkBtn(viewGroup, "Rulers", () => {
-            this._rulersVisible = !this._rulersVisible;
-            this._rulersBtn.classList.toggle("active", this._rulersVisible);
-            this._onViewToggle("rulers", this._rulersVisible);
-        });
-        this._container.appendChild(viewGroup);
-
+        this._buildViewGroup();
         this._container.appendChild(this._mkSep());
-
-        const infoGroup = this._mkGroup("se-toolbar-info");
-        this._sizeLabel = document.createElement("span");
-        this._sizeLabel.className = "se-toolbar-label";
-        infoGroup.appendChild(this._sizeLabel);
-        this._zoomLabel = document.createElement("span");
-        this._zoomLabel.className = "se-toolbar-label";
-        infoGroup.appendChild(this._zoomLabel);
-        this._container.appendChild(infoGroup);
-
+        this._buildInfoGroup();
         this._container.appendChild(this._mkSep());
 
         this._toolGroup = this._mkGroup("se-toolbar-tools");
@@ -78,6 +50,41 @@ class SpriteToolbar {
         this._updateLabels();
     }
 
+    _buildFileGroup() {
+        const fileGroup = this._mkGroup("se-toolbar-file");
+        this._mkBtn(fileGroup, "New",     () => { if (this._onAction) this._onAction("new"); });
+        this._mkBtn(fileGroup, "Open",    () => { if (this._onAction) this._onAction("open"); });
+        this._mkBtn(fileGroup, "Save",    () => { if (this._onAction) this._onAction("save"); });
+        this._mkBtn(fileGroup, "Save As", () => { if (this._onAction) this._onAction("saveAs"); });
+        this._mkBtn(fileGroup, "Export",  () => { if (this._onAction) this._onAction("export"); });
+
+        this._fileNameEl = document.createElement("span");
+        this._fileNameEl.className = "se-toolbar-filename";
+        fileGroup.appendChild(this._fileNameEl);
+        this._container.appendChild(fileGroup);
+    }
+
+    _buildViewGroup() {
+        const viewGroup = this._mkGroup("se-toolbar-view");
+        this._rulersBtn = this._mkBtn(viewGroup, "Rulers", () => {
+            this._rulersVisible = !this._rulersVisible;
+            this._rulersBtn.classList.toggle("active", this._rulersVisible);
+            if (this._onViewToggle) this._onViewToggle("rulers", this._rulersVisible);
+        });
+        this._container.appendChild(viewGroup);
+    }
+
+    _buildInfoGroup() {
+        const infoGroup = this._mkGroup("se-toolbar-info");
+        this._sizeLabel = document.createElement("span");
+        this._sizeLabel.className = "se-toolbar-label";
+        infoGroup.appendChild(this._sizeLabel);
+        this._zoomLabel = document.createElement("span");
+        this._zoomLabel.className = "se-toolbar-label";
+        infoGroup.appendChild(this._zoomLabel);
+        this._container.appendChild(infoGroup);
+    }
+
     _showAbout() {
         const existing = document.querySelector(".se-about-overlay");
         if (existing) { existing.remove(); return; }
@@ -96,7 +103,7 @@ class SpriteToolbar {
         const body = document.createElement("div");
         body.className = "se-about-body";
         body.innerHTML =
-            'Split from a larger engine and made public — feel free to use and enjoy!<br><br>' +
+            'Split from a larger engine and made public \u2014 feel free to use and enjoy!<br><br>' +
             'Made by <strong>David Mkrtchian</strong><br>' +
             '<a href="https://www.davidmcarati.info" target="_blank" rel="noopener">www.davidmcarati.info</a><br><br>' +
             '<em>Coming soon: pixel-art bone animation tool & texture packer</em>';
@@ -127,7 +134,7 @@ class SpriteToolbar {
             btn.dataset.tool = tool.name;
             btn.addEventListener("click", () => {
                 this.setActiveTool(tool.name);
-                this._onToolChange(tool.name);
+                if (this._onToolChange) this._onToolChange(tool.name);
             });
             this._toolGroup.appendChild(btn);
             this._toolButtons[tool.name] = btn;
@@ -164,7 +171,7 @@ class SpriteToolbar {
             slider.addEventListener("input", () => {
                 this._brushSize = parseInt(slider.value) || 1;
                 valLabel.textContent = this._brushSize;
-                this._onOptionChange("brushSize", this._brushSize);
+                if (this._onOptionChange) this._onOptionChange("brushSize", this._brushSize);
             });
             this._optionsGroup.appendChild(slider);
             this._optionsGroup.appendChild(valLabel);
@@ -178,7 +185,7 @@ class SpriteToolbar {
             cb.checked = this._shapeFilled;
             cb.addEventListener("change", () => {
                 this._shapeFilled = cb.checked;
-                this._onOptionChange("shapeFilled", this._shapeFilled);
+                if (this._onOptionChange) this._onOptionChange("shapeFilled", this._shapeFilled);
             });
             label.appendChild(cb);
             label.appendChild(document.createTextNode(" Filled"));
@@ -199,7 +206,7 @@ class SpriteToolbar {
             input.value = this._fillTolerance;
             input.addEventListener("change", () => {
                 this._fillTolerance = parseInt(input.value) || 0;
-                this._onOptionChange("fillTolerance", this._fillTolerance);
+                if (this._onOptionChange) this._onOptionChange("fillTolerance", this._fillTolerance);
             });
             this._optionsGroup.appendChild(input);
         }

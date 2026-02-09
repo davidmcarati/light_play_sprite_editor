@@ -149,7 +149,6 @@ class LayerStack {
             ? target : new SpriteState(this.width, this.height);
         const dst = result.pixels;
 
-        // Find visible layers
         let visibleCount = 0;
         let singleLayer = null;
         for (let i = 0; i < this.layers.length; i++) {
@@ -159,13 +158,11 @@ class LayerStack {
             }
         }
 
-        // Fast path: single visible layer at full opacity → just memcpy
         if (visibleCount === 1 && singleLayer.opacity === 1) {
             dst.set(singleLayer.data.pixels);
             return result;
         }
 
-        // Clear if reusing buffer
         if (target) dst.fill(0);
 
         const totalPixels = this.width * this.height;
@@ -177,7 +174,6 @@ class LayerStack {
             const src = layer.data.pixels;
             const opacity = layer.opacity;
 
-            // Fast path: layer at full opacity with no existing content below
             if (opacity === 1 && i === 0) {
                 dst.set(src);
                 continue;

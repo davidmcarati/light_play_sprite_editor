@@ -7,7 +7,7 @@ const STRIP_HEIGHT = 140;
 class ColorPicker {
     constructor(container, options = {}) {
         this._container = container;
-        this._onChange = options.onChange || (() => {});
+        this._onChange = options.onChange;
 
         this._foreground = new Color(0, 0, 0, 255);
         this._background = new Color(255, 255, 255, 255);
@@ -30,6 +30,21 @@ class ColorPicker {
         this._container.innerHTML = "";
         this._container.className = "se-color-picker";
 
+        this._container.appendChild(this._buildSVRow());
+        this._container.appendChild(this._buildSwatchRow());
+        this._container.appendChild(this._buildPaletteSection());
+        this._container.appendChild(this._buildRecentSection());
+        this._attachPickerListeners();
+
+        this._drawHueStrip();
+        this._drawSV();
+        this._drawAlphaStrip();
+        this._updateSwatches();
+        this._renderPalette();
+        this._renderRecent();
+    }
+
+    _buildSVRow() {
         const svRow = document.createElement("div");
         svRow.className = "se-cp-sv-row";
 
@@ -51,8 +66,10 @@ class ColorPicker {
         this._alphaCanvas.height = STRIP_HEIGHT;
         svRow.appendChild(this._alphaCanvas);
 
-        this._container.appendChild(svRow);
+        return svRow;
+    }
 
+    _buildSwatchRow() {
         const swatchRow = document.createElement("div");
         swatchRow.className = "se-cp-swatch-row";
 
@@ -87,53 +104,59 @@ class ColorPicker {
         });
         swatchRow.appendChild(this._hexInput);
 
-        this._container.appendChild(swatchRow);
+        this._bgSwatch.addEventListener("click", () => this.swapColors());
 
-        const paletteSection = document.createElement("div");
-        paletteSection.className = "se-cp-palette-section";
+        return swatchRow;
+    }
 
-        const palLabel = document.createElement("div");
-        palLabel.className = "se-cp-label";
-        palLabel.textContent = "Palette";
-        paletteSection.appendChild(palLabel);
+    _buildPaletteSection() {
+        const section = document.createElement("div");
+        section.className = "se-cp-palette-section";
+
+        const label = document.createElement("div");
+        label.className = "se-cp-label";
+        label.textContent = "Palette";
+        section.appendChild(label);
 
         this._paletteContainer = document.createElement("div");
         this._paletteContainer.className = "se-cp-palette";
-        paletteSection.appendChild(this._paletteContainer);
+        section.appendChild(this._paletteContainer);
 
         const addBtn = document.createElement("button");
         addBtn.className = "se-cp-add-btn";
         addBtn.textContent = "+";
         addBtn.title = "Add current color to palette";
         addBtn.addEventListener("click", () => this._addToPalette());
-        paletteSection.appendChild(addBtn);
+        section.appendChild(addBtn);
 
-        this._container.appendChild(paletteSection);
+        return section;
+    }
 
-        const recentSection = document.createElement("div");
-        recentSection.className = "se-cp-recent-section";
+    _buildRecentSection() {
+        const section = document.createElement("div");
+        section.className = "se-cp-recent-section";
 
-        const recLabel = document.createElement("div");
-        recLabel.className = "se-cp-label";
-        recLabel.textContent = "Recent";
-        recentSection.appendChild(recLabel);
+        const label = document.createElement("div");
+        label.className = "se-cp-label";
+        label.textContent = "Recent";
+        section.appendChild(label);
 
         this._recentContainer = document.createElement("div");
         this._recentContainer.className = "se-cp-recent";
-        recentSection.appendChild(this._recentContainer);
+        section.appendChild(this._recentContainer);
 
-        this._container.appendChild(recentSection);
+        return section;
+    }
 
+    _attachPickerListeners() {
         this._svCanvas.addEventListener("mousedown", (e) => {
             this._pickingSV = true;
             this._pickSV(e);
         });
-
         this._hueCanvas.addEventListener("mousedown", (e) => {
             this._pickingHue = true;
             this._pickHue(e);
         });
-
         this._alphaCanvas.addEventListener("mousedown", (e) => {
             this._pickingAlpha = true;
             this._pickAlpha(e);
@@ -143,17 +166,6 @@ class ColorPicker {
         this._boundUp = () => this._onMouseUp();
         window.addEventListener("mousemove", this._boundMove);
         window.addEventListener("mouseup", this._boundUp);
-
-        this._bgSwatch.addEventListener("click", () => {
-            this.swapColors();
-        });
-
-        this._drawHueStrip();
-        this._drawSV();
-        this._drawAlphaStrip();
-        this._updateSwatches();
-        this._renderPalette();
-        this._renderRecent();
     }
 
     _pickSV(e) {
@@ -298,12 +310,8 @@ class ColorPicker {
     }
 
     _updateSwatches() {
-        if (this._fgSwatch) {
-            this._fgSwatch.style.backgroundColor = this._foreground.toRGBA();
-        }
-        if (this._bgSwatch) {
-            this._bgSwatch.style.backgroundColor = this._background.toRGBA();
-        }
+        this._fgSwatch.style.backgroundColor = this._foreground.toRGBA();
+        this._bgSwatch.style.backgroundColor = this._background.toRGBA();
     }
 
     _addToRecent(color) {
@@ -409,7 +417,7 @@ class ColorPicker {
     }
 
     _fireChange() {
-        this._onChange(this._foreground);
+        if (this._onChange) this._onChange(this._foreground);
     }
 
     destroy() {

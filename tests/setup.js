@@ -65,6 +65,7 @@ HTMLCanvasElement.prototype.getContext = function (type) {
             getImageData(x, y, w, h) { return new ImageData(w, h); },
             createLinearGradient() { return { addColorStop() {} }; },
             createRadialGradient() { return { addColorStop() {} }; },
+            createPattern() { return "mock-pattern"; },
             measureText(text) { return { width: text.length * 8 }; },
             fillText() {},
             strokeText() {},

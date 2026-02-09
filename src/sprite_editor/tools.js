@@ -89,94 +89,68 @@ class BucketFillTool extends BaseTool {
         if (colorMatch(target, fill, 0)) return;
 
         editor.pushHistory();
-        const w = sprite.width;
-        const h = sprite.height;
-        const pixels = sprite.pixels;
-        const visited = new Uint8Array(w * h);
-        const tol = editor.fillTolerance;
-        const tr = target.r, tg = target.g, tb = target.b, ta = target.a;
-        const fr = fill.r, fg = fill.g, fb = fill.b, fa = fill.a;
-
-        // Scanline flood fill — much faster and lower memory than per-pixel stack
-        const queue = [px, py];
-        let qi = 0;
-
-        while (qi < queue.length) {
-            let x = queue[qi++];
-            const y = queue[qi++];
-            if (y < 0 || y >= h) continue;
-
-            // Find left edge
-            while (x > 0) {
-                const li = (y * w + x - 1) * 4;
-                if (Math.abs(pixels[li] - tr) > tol ||
-                    Math.abs(pixels[li + 1] - tg) > tol ||
-                    Math.abs(pixels[li + 2] - tb) > tol ||
-                    Math.abs(pixels[li + 3] - ta) > tol) break;
-                if (visited[y * w + x - 1]) break;
-                x--;
-            }
-
-            let spanUp = false, spanDown = false;
-
-            while (x < w) {
-                const key = y * w + x;
-                if (visited[key]) { x++; continue; }
-
-                const i = key * 4;
-                if (Math.abs(pixels[i] - tr) > tol ||
-                    Math.abs(pixels[i + 1] - tg) > tol ||
-                    Math.abs(pixels[i + 2] - tb) > tol ||
-                    Math.abs(pixels[i + 3] - ta) > tol) break;
-
-                visited[key] = 1;
-                pixels[i] = fr;
-                pixels[i + 1] = fg;
-                pixels[i + 2] = fb;
-                pixels[i + 3] = fa;
-
-                // Check pixel above
-                if (y > 0) {
-                    const aboveKey = (y - 1) * w + x;
-                    const ai = aboveKey * 4;
-                    const aboveMatch = !visited[aboveKey] &&
-                        Math.abs(pixels[ai] - tr) <= tol &&
-                        Math.abs(pixels[ai + 1] - tg) <= tol &&
-                        Math.abs(pixels[ai + 2] - tb) <= tol &&
-                        Math.abs(pixels[ai + 3] - ta) <= tol;
-                    if (aboveMatch && !spanUp) {
-                        queue.push(x, y - 1);
-                        spanUp = true;
-                    } else if (!aboveMatch) {
-                        spanUp = false;
-                    }
-                }
-
-                // Check pixel below
-                if (y < h - 1) {
-                    const belowKey = (y + 1) * w + x;
-                    const bi = belowKey * 4;
-                    const belowMatch = !visited[belowKey] &&
-                        Math.abs(pixels[bi] - tr) <= tol &&
-                        Math.abs(pixels[bi + 1] - tg) <= tol &&
-                        Math.abs(pixels[bi + 2] - tb) <= tol &&
-                        Math.abs(pixels[bi + 3] - ta) <= tol;
-                    if (belowMatch && !spanDown) {
-                        queue.push(x, y + 1);
-                        spanDown = true;
-                    } else if (!belowMatch) {
-                        spanDown = false;
-                    }
-                }
-
-                x++;
-            }
-        }
-
+        scanlineFill(
+            sprite.pixels, sprite.width, sprite.height, px, py,
+            target.r, target.g, target.b, target.a,
+            fill.r, fill.g, fill.b, fill.a,
+            editor.fillTolerance
+        );
         editor.markDirty();
     }
 
     getOptions() { return ["fillTolerance"]; }
+}
+
+function pixelMatches(pixels, i, tr, tg, tb, ta, tol) {
+    return Math.abs(pixels[i] - tr) <= tol &&
+           Math.abs(pixels[i + 1] - tg) <= tol &&
+           Math.abs(pixels[i + 2] - tb) <= tol &&
+           Math.abs(pixels[i + 3] - ta) <= tol;
+}
+
+function scanlineFill(pixels, w, h, startX, startY, tr, tg, tb, ta, fr, fg, fb, fa, tol) {
+    const visited = new Uint8Array(w * h);
+    const queue = [startX, startY];
+    let qi = 0;
+
+    while (qi < queue.length) {
+        let x = queue[qi++];
+        const y = queue[qi++];
+        if (y < 0 || y >= h) continue;
+
+        while (x > 0 && !visited[y * w + x - 1] &&
+               pixelMatches(pixels, (y * w + x - 1) * 4, tr, tg, tb, ta, tol)) {
+            x--;
+        }
+
+        let spanUp = false, spanDown = false;
+
+        while (x < w) {
+            const key = y * w + x;
+            if (visited[key]) { x++; continue; }
+            const i = key * 4;
+            if (!pixelMatches(pixels, i, tr, tg, tb, ta, tol)) break;
+
+            visited[key] = 1;
+            pixels[i] = fr; pixels[i + 1] = fg; pixels[i + 2] = fb; pixels[i + 3] = fa;
+
+            if (y > 0) {
+                const above = !visited[(y - 1) * w + x] &&
+                    pixelMatches(pixels, ((y - 1) * w + x) * 4, tr, tg, tb, ta, tol);
+                if (above && !spanUp) { queue.push(x, y - 1); spanUp = true; }
+                else if (!above) spanUp = false;
+            }
+
+            if (y < h - 1) {
+                const below = !visited[(y + 1) * w + x] &&
+                    pixelMatches(pixels, ((y + 1) * w + x) * 4, tr, tg, tb, ta, tol);
+                if (below && !spanDown) { queue.push(x, y + 1); spanDown = true; }
+                else if (!below) spanDown = false;
+            }
+
+            x++;
+        }
+    }
 }
 
 class EyedropperTool extends BaseTool {
@@ -381,7 +355,6 @@ class MoveTool extends BaseTool {
     }
 }
 
-// Bresenham's line
 function drawLine(x0, y0, x1, y1, cb) {
     x0 = Math.round(x0); y0 = Math.round(y0);
     x1 = Math.round(x1); y1 = Math.round(y1);
@@ -436,7 +409,6 @@ const ALL_TOOLS = [
     new MoveTool()
 ];
 
-// Keep "drawLinePixels" as the exported name for test compat
 const drawLinePixels = drawLine;
 
 export { ALL_TOOLS, BaseTool, drawLinePixels, colorMatch };
